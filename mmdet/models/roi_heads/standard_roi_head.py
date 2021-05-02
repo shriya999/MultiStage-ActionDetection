@@ -218,6 +218,25 @@ class StandardRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
                 mask_test_cfg=self.test_cfg.get('mask'))
             return bbox_results, segm_results
 
+    def forward_tracking(self, x, img_metas, proposals, rescale=False):
+        """Tracking forward function."""
+        # bbox head
+        outs = ()
+        rois = bbox2roi([proposals])
+        bbox_results = self._bbox_forward(x, rois)
+        img_shape = img_metas[0]['img_shape']
+        scale_factor = img_metas[0]['scale_factor']
+        det_bboxes, det_labels, det_scores, det_indices = self.bbox_head.get_bboxes(
+                rois,
+                bbox_results['cls_score'],
+                bbox_results['bbox_pred'],
+                img_shape,
+                scale_factor,
+                rescale=rescale,
+                cfg=self.test_cfg)
+                
+        return det_bboxes, det_labels, det_scores, det_indices, bbox_results['bbox_feats']
+
     def simple_test(self,
                     x,
                     proposal_list,

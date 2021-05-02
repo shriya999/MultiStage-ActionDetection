@@ -403,9 +403,9 @@ class BBoxHead(BaseModule):
         det_labels = []
         for (bbox, score) in zip(bboxes, scores):
             if cfg is not None:
-                det_bbox, det_label = multiclass_nms(bbox, score,
+                det_bbox, det_label, det_scores, det_indices = multiclass_nms(bbox, score,
                                                      cfg.score_thr, cfg.nms,
-                                                     cfg.max_per_img)
+                                                     cfg.max_per_img, return_indices=True, return_scores=True)
             else:
                 det_bbox, det_label = bbox, score
             det_bboxes.append(det_bbox)
@@ -414,7 +414,7 @@ class BBoxHead(BaseModule):
         if not batch_mode:
             det_bboxes = det_bboxes[0]
             det_labels = det_labels[0]
-        return det_bboxes, det_labels
+        return det_bboxes, det_labels, det_scores, det_indices
 
     @force_fp32(apply_to=('bbox_preds', ))
     def refine_bboxes(self, rois, labels, bbox_preds, pos_is_gts, img_metas):

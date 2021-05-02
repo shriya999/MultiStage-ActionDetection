@@ -10,7 +10,8 @@ def multiclass_nms(multi_bboxes,
                    nms_cfg,
                    max_num=-1,
                    score_factors=None,
-                   return_inds=False):
+                   return_inds=False,
+                   return_scores=False):
     """NMS for multi-class bboxes.
 
     Args:
@@ -89,6 +90,8 @@ def multiclass_nms(multi_bboxes,
 
     if return_inds:
         return dets, labels[keep], keep
+    else if return_scores:
+        return dets, labels[keep], scores[keep], keep
     else:
         return dets, labels[keep]
 
