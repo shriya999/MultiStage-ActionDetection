@@ -157,55 +157,55 @@ def run_detect_and_track(args, frame_stack, model, targetid2class,
       previous_box_num = sum(valid_indices[:b])  # [k, 256, 7, 7]
       box_feats = batch_box_feats[previous_box_num:previous_box_num+valid_indices[b]]
 
-    if args.get_tracking:
-      assert len(box_feats) == len(final_boxes)
+      if args.get_tracking:
+        assert len(box_feats) == len(final_boxes)
 
-      for tracking_obj in tracking_objs:
-        target_tracking_obs = [tracking_obj]
-        # will consider scale here
-        scale = scales[b]
-        detections = create_obj_infos(
-            cur_frame, final_boxes, final_probs, final_labels, box_feats,
-            targetid2class, target_tracking_obs, args.min_confidence,
-            args.min_detection_height, scale,
-            is_coco_model=args.is_coco_model,
-            coco_to_actev_mapping=coco_obj_to_actev_obj)
-        # Run non-maxima suppression.
-        boxes = np.array([d.tlwh for d in detections])
-        scores = np.array([d.confidence for d in detections])
-        indices = preprocessing.non_max_suppression(
-            boxes, 0.85, scores)
-        detections = [detections[i] for i in indices]
+        for tracking_obj in tracking_objs:
+          target_tracking_obs = [tracking_obj]
+          # will consider scale here
+          scale = scales[b]
+          detections = create_obj_infos(
+              cur_frame, final_boxes, final_probs, final_labels, box_feats,
+              targetid2class, target_tracking_obs, args.min_confidence,
+              args.min_detection_height, scale,
+              is_coco_model=args.is_coco_model,
+              coco_to_actev_mapping=coco_obj_to_actev_obj)
+          # Run non-maxima suppression.
+          boxes = np.array([d.tlwh for d in detections])
+          scores = np.array([d.confidence for d in detections])
+          indices = preprocessing.non_max_suppression(
+              boxes, 0.85, scores)
+          detections = [detections[i] for i in indices]
 
-        # tracking
-        tracker_dict[tracking_obj].predict()
-        tracker_dict[tracking_obj].update(detections)
+          # tracking
+          tracker_dict[tracking_obj].predict()
+          tracker_dict[tracking_obj].update(detections)
 
-        # Store results
-        for track in tracker_dict[tracking_obj].tracks:
-          if not track.is_confirmed() or track.time_since_update > 1:
-            if (not track.is_confirmed()) and track.time_since_update == 0:
-              bbox = track.to_tlwh()
-              if track.track_id not in \
-                  tmp_tracking_results_dict[tracking_obj]:
-                tmp_tracking_results_dict[tracking_obj][track.track_id] = \
-                    [[cur_frame, track.track_id, bbox[0], bbox[1],
-                      bbox[2], bbox[3]]]
-              else:
-                tmp_tracking_results_dict[
-                    tracking_obj][track.track_id].append(
-                        [cur_frame, track.track_id,
-                         bbox[0], bbox[1], bbox[2], bbox[3]])
-            continue
-          bbox = track.to_tlwh()
-          if track.track_id in tmp_tracking_results_dict[tracking_obj]:
-            pred_list = tmp_tracking_results_dict[tracking_obj][
-                track.track_id]
-            for pred_data in pred_list:
-              tracking_results_dict[tracking_obj].append(pred_data)
-            tmp_tracking_results_dict[tracking_obj].pop(track.track_id,
-                                                        None)
-          tracking_results_dict[tracking_obj].append([cur_frame, track.track_id, bbox[0], bbox[1], bbox[2], bbox[3]])
+          # Store results
+          for track in tracker_dict[tracking_obj].tracks:
+            if not track.is_confirmed() or track.time_since_update > 1:
+              if (not track.is_confirmed()) and track.time_since_update == 0:
+                bbox = track.to_tlwh()
+                if track.track_id not in \
+                    tmp_tracking_results_dict[tracking_obj]:
+                  tmp_tracking_results_dict[tracking_obj][track.track_id] = \
+                      [[cur_frame, track.track_id, bbox[0], bbox[1],
+                        bbox[2], bbox[3]]]
+                else:
+                  tmp_tracking_results_dict[
+                      tracking_obj][track.track_id].append(
+                          [cur_frame, track.track_id,
+                          bbox[0], bbox[1], bbox[2], bbox[3]])
+              continue
+            bbox = track.to_tlwh()
+            if track.track_id in tmp_tracking_results_dict[tracking_obj]:
+              pred_list = tmp_tracking_results_dict[tracking_obj][
+                  track.track_id]
+              for pred_data in pred_list:
+                tracking_results_dict[tracking_obj].append(pred_data)
+              tmp_tracking_results_dict[tracking_obj].pop(track.track_id,
+                                                          None)
+            tracking_results_dict[tracking_obj].append([cur_frame, track.track_id, bbox[0], bbox[1], bbox[2], bbox[3]])
 
       if obj_out_dir is None:  # not saving the boxes
         continue
@@ -310,5 +310,3 @@ if __name__ == "__main__":
             line = "%d,%d,%.2f,%.2f,%.2f,%.2f,1,-1,-1,-1" % (
                 row[0], row[1], row[2], row[3], row[4], row[5])
             fw.write(line + "\n")
-
-  cv2.destroyAllWindows()
