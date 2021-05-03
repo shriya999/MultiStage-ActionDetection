@@ -36,9 +36,6 @@ matplotlib.use("Agg")
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
-#from nn import soft_nms, nms
-from generate_anchors import generate_anchors
-
 
 class Summary():
   def __init__(self):
@@ -456,61 +453,6 @@ def match_detection(d, g, ious, iou_thres=0.5):
     gtm[m] = didx
     dtm[didx] = m
   return dtm, gtm
-
-
-def get_all_anchors(stride, sizes, ratios, max_size):
-  """
-  Get all anchors in the largest possible image, shifted, floatbox
-
-  Returns:
-    anchors: SxSxNUM_ANCHORx4, where S == MAX_SIZE//STRIDE, floatbox
-    The layout in the NUM_ANCHOR dim is NUM_RATIO x NUM_SCALE.
-
-  """
-  # Generates a NAx4 matrix of anchor boxes in (x1, y1, x2, y2) format. Anchors
-  # are centered on stride / 2, have (approximate) sqrt areas of the specified
-  # sizes, and aspect ratios as given.
-  # got all anchor start from center (8,8) [so the base box is (0,0,15,15)]
-  # -> ratios * scales
-  cell_anchors = generate_anchors(
-      stride, scales=np.array(sizes, dtype=np.float) / stride,
-      ratios=np.array(ratios, dtype=np.float))
-  # anchors are intbox here.
-  # anchors at featuremap [0,0] are centered at fpcoor (8,8) (half of stride)
-
-  # 1920/16 -> 120
-  # previous tensorpack code
-  #field_size = max_size // stride # how many anchor position in an image
-  # at one axis
-  field_size = int(np.ceil(max_size / stride))
-  # 0, 120, ...., 1920
-  # 120*120 (x,y)
-  shifts = np.arange(0, field_size) * stride # each position"s (x,y)
-  shift_x, shift_y = np.meshgrid(shifts, shifts)
-
-  shift_x = shift_x.flatten()
-  shift_y = shift_y.flatten()
-  # for 1920 , will be (120x120,4) # all the anchor boxes xy
-  # all anchor position xy, so should be [51x51, 4]
-  shifts = np.vstack((shift_x, shift_y, shift_x, shift_y)).transpose()
-  # Kx4, K = field_size * field_size
-  K = shifts.shape[0]  # 1920 gets 120x120
-
-  A = cell_anchors.shape[0] # number of anchor at 1 position
-  field_of_anchors = (
-      cell_anchors.reshape((1, A, 4)) +
-      shifts.reshape((1, K, 4)).transpose((1, 0, 2)))
-  field_of_anchors = field_of_anchors.reshape((field_size, field_size, A, 4))
-  # FSxFSxAx4
-  # Many rounding happens inside the anchor code anyway
-  #assert np.all(field_of_anchors == field_of_anchors.astype("int32")),
-  #(field_of_anchors,field_of_anchors.astype("int32"))
-  # 1920 -> (120,120,NA,4)
-  field_of_anchors = field_of_anchors.astype("float32")
-  # the last 4 is (x1,y1,x2,y2)
-  # (x1,y1+1,x2+1,y2)??
-  field_of_anchors[:, :, :, [2, 3]] += 1
-  return field_of_anchors
 
 # flatten a tensor
 # [N,M,JI,JXP,dim] -> [N*M*JI,JXP,dim]

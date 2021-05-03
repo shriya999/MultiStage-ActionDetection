@@ -99,8 +99,12 @@ def get_args():
 
     targetClass2id = coco_obj_class_to_id
     targetid2class = coco_obj_id_to_class
+
     args.num_class = 81
+    args.is_coco_model = True
+    args.partial_classes = [classname for classname in coco_obj_to_actev_obj]
     partial_classes = ["BG"] + args.partial_classes
+
     targetClass2id = {classname: i
                     for i, classname in enumerate(partial_classes)}
     targetid2class = {targetClass2id[o]: o for o in targetClass2id}
@@ -114,9 +118,6 @@ def get_args():
     args.diva_class2 = False
     args.use_small_object_head = False
     args.use_so_score_thres = False
-    args.max_size = np.ceil(args.max_size / args.fpn_resolution_requirement) * \
-                    args.fpn_resolution_requirement
-    args.result_score_thres = args.threshold_conf
     args.result_per_im = 100
 
     return args
@@ -250,7 +251,7 @@ if __name__ == "__main__":
 
   # 1. load the object detection model
   config = 'configs/mask_rcnn/mask_rcnn_r50_fpn_2x_coco.py'
-  checkpoint = 'checkpoints/mask_rcnn_r50_fpn_2x_coco_bbox_mAP-0.392__segm_mAP-0.354_20200505_003907-3e542a40.pth'
+  checkpoint = 'mask_rcnn_r50_fpn_2x_coco_bbox_mAP-0.392__segm_mAP-0.354_20200505_003907-3e542a40.pth'
   model = init_detector(config, checkpoint, device='cuda:0')
 
   for videofile in tqdm(videolst, ascii=True):

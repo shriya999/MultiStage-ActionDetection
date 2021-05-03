@@ -90,7 +90,7 @@ def multiclass_nms(multi_bboxes,
 
     if return_inds:
         return dets, labels[keep], keep
-    else if return_scores:
+    elif return_scores:
         return dets, labels[keep], scores[keep], keep
     else:
         return dets, labels[keep]
