@@ -24,7 +24,16 @@ import torch, torchvision
 import numpy as np
 
 # detection stuff
-from mmdet.apis import inference_detector, init_detector, show_result_pyplot
+import detectron2
+from detectron2.utils.logger import setup_logger
+setup_logger()
+
+# import some common detectron2 utilities
+from detectron2 import model_zoo
+from detectron2.engine import DefaultPredictor
+from detectron2.config import get_cfg
+from detectron2.utils.visualizer import Visualizer
+from detectron2.data import MetadataCatalog, DatasetCatalog
 
 # tracking stuff
 from deep_sort import nn_matching
@@ -142,8 +151,20 @@ def run_detect_and_track(args, frame_stack, model, targetid2class,
     batched_imgs = np.stack(resized_images, axis=0)
     # [B, H, W, 3] -> [B, C, H, W] for pytorch
     reordered_imgs = np.moveaxis(batched_imgs, (0, 1, 2, 3), (0, 3, 1, 2))
-    # [B, num, 4], [B, num], [B, num], [B], [M, 256, 7, 7]
-    batch_boxes, batch_labels, batch_probs, valid_indices, batch_box_feats = inference_detector(model, reordered_imgs)
+
+    outputs = model(reordered_imgs)
+    features = model.backbone(reordered_imgs.tensor)
+    proposals, _ = model.proposal_generator(reordered_imgs, features)
+    instances, _ = model.roi_heads(reordered_imgs, features, proposals)
+    mask_features = [features[f] for f in model.roi_heads.in_features]
+    mask_features = model.roi_heads.mask_pooler(mask_features, [x.pred_boxes for x in instances])
+
+    batch_labels = outputs["instances"].pred_classes       # [B, num]
+    batch_boxes = outputs["instances"].pred_boxes          # [B, num, 4]
+    batch_probs = outputs["instances"].scores              # [B, num]
+    valid_indices = outputs["instances"].valid_indices     # [B]
+    batch_box_feats = mask_features                        # [M, 256, 7, 7]
+
     assert np.sum(valid_indices) == batch_box_feats.shape[0], "duh"
 
     for b in range(valid_frame_num):
@@ -246,9 +267,12 @@ if __name__ == "__main__":
   from diva_io.video import VideoReader
 
   # 1. load the object detection model
-  config = 'configs/mask_rcnn/mask_rcnn_r50_fpn_2x_coco.py'
-  checkpoint = 'mask_rcnn_r50_fpn_2x_coco_bbox_mAP-0.392__segm_mAP-0.354_20200505_003907-3e542a40.pth'
-  model = init_detector(config, checkpoint, device='cuda:0')
+  cfg = get_cfg()
+  cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"))
+  cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5  # set threshold for this model
+  cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")
+  model = build_model(cfg)
+  model.eval()
 
   for videofile in tqdm(videolst, ascii=True):
     # 2. read the video file
@@ -307,3 +331,5 @@ if __name__ == "__main__":
             line = "%d,%d,%.2f,%.2f,%.2f,%.2f,1,-1,-1,-1" % (
                 row[0], row[1], row[2], row[3], row[4], row[5])
             fw.write(line + "\n")
+
+  cv2.destroyAllWindows()
