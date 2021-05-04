@@ -21,7 +21,7 @@ test_pipeline = [
         flip=False,
         transforms=[
             dict(type='RandomFlip'),
-            dict(type='DefaultFormatBundle', keys=['img']),
+            dict(type='DefaultFormatBundle'),
             dict(type='Collect', keys=['img']),
         ])
 ]

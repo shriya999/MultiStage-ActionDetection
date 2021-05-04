@@ -163,17 +163,6 @@ class TwoStageDetector(BaseDetector):
         return await self.roi_head.async_simple_test(
             x, proposal_list, img_meta, rescale=rescale)
 
-    def forward_tracking(self, img, img_metas, proposals=None, rescale=False):
-        """Tracking forward function."""
-        # bbox head
-        x = self.extract_feat(img)
-        if proposals is None:
-            proposal_list = self.rpn_head.simple_test_rpn(x, img_metas)
-        else:
-            proposal_list = proposals
-                        
-        return self.roi_head.forward_tracking(x, proposal_list, img_metas, rescale)
-
     def simple_test(self, img, img_metas, proposals=None, rescale=False):
         """Test without augmentation."""
         assert self.with_bbox, 'Bbox head must be implemented.'
@@ -190,8 +179,7 @@ class TwoStageDetector(BaseDetector):
         else:
             proposal_list = proposals
 
-        return self.roi_head.simple_test(
-            x, proposal_list, img_metas, rescale=rescale)
+        return self.roi_head.forward_tracking(x, proposal_list, img_metas, rescale)
 
     def aug_test(self, imgs, img_metas, rescale=False):
         """Test with augmentations.

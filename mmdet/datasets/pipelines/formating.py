@@ -20,14 +20,19 @@ def to_tensor(data):
     """
 
     if isinstance(data, torch.Tensor):
+        print("already tensor")
         return data
     elif isinstance(data, np.ndarray):
+        print("ndarray")
         return torch.from_numpy(data)
     elif isinstance(data, Sequence) and not mmcv.is_str(data):
+        print("sequence")
         return torch.tensor(data)
     elif isinstance(data, int):
+        print("int")
         return torch.LongTensor([data])
     elif isinstance(data, float):
+        print("float")
         return torch.FloatTensor([data])
     else:
         raise TypeError(f'type {type(data)} cannot be converted to tensor.')
@@ -92,7 +97,7 @@ class ImageToTensor(object):
             img = results[key]
             if len(img.shape) < 3:
                 img = np.expand_dims(img, -1)
-            results[key] = to_tensor(img.transpose(2, 0, 1))
+            results[key] = to_tensor(img.transpose(0, 2, 1, 3))
         return results
 
     def __repr__(self):
@@ -207,8 +212,9 @@ class DefaultFormatBundle(object):
             if len(img.shape) < 3:
                 img = np.expand_dims(img, -1)
             img = np.ascontiguousarray(img.transpose(0, 2, 1, 3))
-            print("after default format bundle", img.shape)
-            results['img'] = DC(to_tensor(img), stack=True)
+            results['img'] = to_tensor(img)
+            print("after default format bundle", results['img'].shape)
+            print("type after default format bundle", type(results['img']))
         for key in ['proposals', 'gt_bboxes', 'gt_bboxes_ignore', 'gt_labels']:
             if key not in results:
                 continue
@@ -318,6 +324,7 @@ class Collect(object):
         data['img_metas'] = DC(img_meta, cpu_only=True)
         for key in self.keys:
             data[key] = results[key]
+        print("type of img after collect", data['img'].shape)
         return data
 
     def __repr__(self):

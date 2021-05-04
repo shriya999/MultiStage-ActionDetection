@@ -32,7 +32,9 @@ class RPNTestMixin(object):
         Returns:
             list[Tensor]: Proposals of each image.
         """
+        print("shape before rpn outs", x.shape)
         rpn_outs = self(x)
+        print("shape after rpn outs", rpn_outs.shape)
         proposal_list = self.get_bboxes(*rpn_outs, img_metas)
         return proposal_list
 

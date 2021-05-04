@@ -117,6 +117,7 @@ def inference_detector(model, imgs):
     test_pipeline = Compose(cfg.data.test.pipeline)
 
     datas = []
+    print("inference imgs input shape", len(imgs))
     for img in imgs:
         # prepare data
         if isinstance(img, np.ndarray):
@@ -141,10 +142,11 @@ def inference_detector(model, imgs):
             assert not isinstance(
                 m, RoIPool
             ), 'CPU inference with RoIPool is not supported currently.'
+    print("type before forward tracking", len(data['img']))
 
     # forward the model
     with torch.no_grad():
-        results = model.forward_tracking(data['img'], data['img_metas'])
+        results = model(return_loss=False, rescale=True, **data)
 
     if not is_batch:
         return results[0]
