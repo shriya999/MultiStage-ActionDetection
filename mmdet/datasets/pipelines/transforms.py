@@ -204,17 +204,18 @@ class Resize(object):
         """Resize images with ``results['scale']``."""
         for key in results.get('img_fields', ['img']):
             if self.keep_ratio:
-                img, scale_factor = mmcv.imrescale(
-                    results[key],
-                    results['scale'],
-                    return_scale=True,
-                    backend=self.backend)
-                # the w_scale and h_scale has minor difference
-                # a real fix should be done in the mmcv.imrescale in the future
-                new_h, new_w = img.shape[:2]
-                h, w = results[key].shape[:2]
-                w_scale = new_w / w
-                h_scale = new_h / h
+                try:
+                    img = cv2.resize(
+                      results[key],
+                      results['scale'])
+                    # the w_scale and h_scale has minor difference
+                    # a real fix should be done in the mmcv.imrescale in the future
+                    new_h, new_w = img.shape[:2]
+                    h, w = results[key].shape[:2]
+                    w_scale = new_w / w
+                    h_scale = new_h / h
+                except:
+                    break
             else:
                 img, w_scale, h_scale = mmcv.imresize(
                     results[key],
@@ -222,6 +223,7 @@ class Resize(object):
                     return_scale=True,
                     backend=self.backend)
             results[key] = img
+            print("after resize", img.shape)
 
             scale_factor = np.array([w_scale, h_scale, w_scale, h_scale],
                                     dtype=np.float32)

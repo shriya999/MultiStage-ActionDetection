@@ -172,7 +172,7 @@ class TwoStageDetector(BaseDetector):
         else:
             proposal_list = proposals
                         
-        return self.roi_head.forward_tracking(x, proposal_list, image_metas, rescale)
+        return self.roi_head.forward_tracking(x, proposal_list, img_metas, rescale)
 
     def simple_test(self, img, img_metas, proposals=None, rescale=False):
         """Test without augmentation."""

@@ -201,11 +201,13 @@ class DefaultFormatBundle(object):
 
         if 'img' in results:
             img = results['img']
+            print("after random flip", img.shape)
             # add default meta keys
             results = self._add_default_meta_keys(results)
             if len(img.shape) < 3:
                 img = np.expand_dims(img, -1)
-            img = np.ascontiguousarray(img.transpose(2, 0, 1))
+            img = np.ascontiguousarray(img.transpose(0, 2, 1, 3))
+            print("after default format bundle", img.shape)
             results['img'] = DC(to_tensor(img), stack=True)
         for key in ['proposals', 'gt_bboxes', 'gt_bboxes_ignore', 'gt_labels']:
             if key not in results:

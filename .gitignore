@@ -130,6 +130,7 @@ dmypy.json
 
 # Visual Studio
 .vs/
+*.code-workspace
 
 #Checkpoints
 checkpoints/

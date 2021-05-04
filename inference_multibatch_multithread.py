@@ -24,10 +24,6 @@ import torch, torchvision
 import numpy as np
 
 # detection stuff
-from utils import get_op_tensor_name
-from utils import parse_nvidia_smi
-from utils import sec2time
-from utils import PerformanceLogger
 from mmdet.apis import inference_detector, init_detector, show_result_pyplot
 
 # tracking stuff
@@ -145,7 +141,7 @@ def run_detect_and_track(args, frame_stack, model, targetid2class,
     # [B, H, W, 3] 
     batched_imgs = np.stack(resized_images, axis=0)
     # [B, H, W, 3] -> [B, C, H, W] for pytorch
-    reordered_imgs = np.moveaxis(batched_images, (0, 1, 2, 3), (0, 3, 1, 2))
+    reordered_imgs = np.moveaxis(batched_imgs, (0, 1, 2, 3), (0, 3, 1, 2))
     # [B, num, 4], [B, num], [B, num], [B], [M, 256, 7, 7]
     batch_boxes, batch_labels, batch_probs, valid_indices, batch_box_feats = inference_detector(model, reordered_imgs)
     assert np.sum(valid_indices) == batch_box_feats.shape[0], "duh"
@@ -267,9 +263,9 @@ if __name__ == "__main__":
       tmp_tracking_results_dict = {}
       for tracking_obj in tracking_objs:
         metric = metric = nn_matching.NearestNeighborDistanceMetric(
-            "cosine", args.max_cosine_distance, args.nn_budget)
+            "cosine", 0.5, 5)
         tracker_dict[tracking_obj] = Tracker(
-            metric, max_iou_distance=args.max_iou_distance)
+            metric, max_iou_distance=0.5)
         tracking_results_dict[tracking_obj] = []
         tmp_tracking_results_dict[tracking_obj] = {}
 
@@ -279,7 +275,7 @@ if __name__ == "__main__":
     video_queuer = VideoEnqueuer(
         args, vcap, frame_count, frame_gap=args.frame_gap,
         prefetch=args.prefetch,
-        start=True, is_moviepy=args.use_moviepy,
+        start=True, is_moviepy=False,
         batch_size=args.im_batch_size)
     get_batches = video_queuer.get()
 
