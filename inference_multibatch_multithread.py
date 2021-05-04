@@ -34,6 +34,8 @@ from detectron2.engine import DefaultPredictor
 from detectron2.config import get_cfg
 from detectron2.utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog, DatasetCatalog
+from detectron2.modeling import build_model
+from rcnn_predictor import RCNNPredictor
 
 # tracking stuff
 from deep_sort import nn_matching
@@ -152,10 +154,14 @@ def run_detect_and_track(args, frame_stack, model, targetid2class,
     # [B, H, W, 3] -> [B, C, H, W] for pytorch
     reordered_imgs = np.moveaxis(batched_imgs, (0, 1, 2, 3), (0, 3, 1, 2))
 
-    outputs = model(reordered_imgs)
-    features = model.backbone(reordered_imgs.tensor)
-    proposals, _ = model.proposal_generator(reordered_imgs, features)
-    instances, _ = model.roi_heads(reordered_imgs, features, proposals)
+    input_dict = []
+    for imgs in reordered_imgs:
+      input_dict.append({"images": imgs})
+
+    outputs = model(input_dict)
+    features = model.backbone(input_dict)
+    proposals, _ = model.proposal_generator(input_dict, features)
+    instances, _ = model.roi_heads(input_dict, features, proposals)
     mask_features = [features[f] for f in model.roi_heads.in_features]
     mask_features = model.roi_heads.mask_pooler(mask_features, [x.pred_boxes for x in instances])
 
@@ -271,6 +277,7 @@ if __name__ == "__main__":
   cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"))
   cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5  # set threshold for this model
   cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")
+  cfg.MODEL.ROI_HEADS.BOX_PREDICTOR = 'RCNNPredictor'
   model = build_model(cfg)
   model.eval()
 
