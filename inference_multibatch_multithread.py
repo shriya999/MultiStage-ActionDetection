@@ -156,7 +156,7 @@ def run_detect_and_track(args, frame_stack, model, targetid2class,
 
     input_dict = []
     for imgs in reordered_imgs:
-      input_dict.append({"images": imgs})
+      input_dict.append({"image": torch.from_numpy(imgs)})
 
     outputs = model(input_dict)
     features = model.backbone(input_dict)
@@ -278,6 +278,7 @@ if __name__ == "__main__":
   cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5  # set threshold for this model
   cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")
   cfg.MODEL.ROI_HEADS.BOX_PREDICTOR = 'RCNNPredictor'
+  cfg.MODEL.DEVICE = 'cpu'
   model = build_model(cfg)
   model.eval()
 
