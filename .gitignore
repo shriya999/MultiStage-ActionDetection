@@ -135,3 +135,5 @@ dmypy.json
 #Checkpoints
 checkpoints/
 meva_outdoor*/
+meva_outdoor*.lst 
+meva_outdoor*.tgz 

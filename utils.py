@@ -18,7 +18,6 @@ if sys.version_info > (3, 0):
 else:
   import commands
 
-import tensorflow as tf
 from operator import mul
 #from itertools import izip_longest
 import itertools
@@ -454,27 +453,6 @@ def match_detection(d, g, ious, iou_thres=0.5):
     gtm[m] = didx
     dtm[didx] = m
   return dtm, gtm
-
-# flatten a tensor
-# [N,M,JI,JXP,dim] -> [N*M*JI,JXP,dim]
-# keep how many dimension in the end, so final rank is keep + 1
-def flatten(tensor, keep):
-  # get the shape
-  fixed_shape = tensor.get_shape().as_list() #[N, JQ, di] # [N, M, JX, di]
-  # len([N, JQ, di]) - 2 = 1 # len([N, M, JX, di] ) - 2 = 2
-  start = len(fixed_shape) - keep
-  # each num in the [] will a*b*c*d...
-  # so [0] -> just N here for left
-  # for [N, M, JX, di] , left is N*M
-  left = reduce(mul, [fixed_shape[i] or tf.shape(tensor)[i]
-                      for i in range(start)])
-  # [N, JQ,di]
-  # [N*M, JX, di]
-  out_shape = [left] + [fixed_shape[i] or tf.shape(tensor)[i]
-                        for i in range(start, len(fixed_shape))]
-  # reshape
-  flat = tf.reshape(tensor, out_shape)
-  return flat
 
 def evalcoco(res, annofile, add_mask=False):
   coco = COCO(annofile)
