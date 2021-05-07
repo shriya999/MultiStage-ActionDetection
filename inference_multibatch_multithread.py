@@ -60,6 +60,7 @@ from class_ids import coco_id_mapping
 
 targetClass2id = targetClass2id_new_nopo
 targetid2class = {targetClass2id[one]: one for one in targetClass2id}
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def get_args():
@@ -183,7 +184,7 @@ def run_detect_and_track(
 
     input_dict = []
     for imgs in reordered_imgs:
-        input_dict.append({"image": torch.from_numpy(imgs)})
+        input_dict.append({"image": torch.from_numpy(imgs).float().to(device)})
     outputs = model(input_dict)
 
     batch_labels = [x["instances"].pred_classes for x in outputs]  # [B, num]
@@ -203,16 +204,21 @@ def run_detect_and_track(
 
     for b in range(valid_frame_num):
         cur_frame = frame_idxs[b]
-        final_boxes = batch_boxes[b].tensor.detach().numpy()  # [k, 4]
-        final_labels = batch_labels[b].detach().numpy()  # [k]
-        final_probs = batch_probs[b].detach().numpy()  # [k]
+        final_boxes = batch_boxes[b].tensor.cpu().detach().numpy()  # [k, 4]
+        final_labels = batch_labels[b].cpu().detach().numpy()  # [k]
+        final_probs = batch_probs[b].cpu().detach().numpy()  # [k]
         previous_box_num = 0
         for l in range(b):
             box = batch_boxes[l]
             previous_box_num += box.tensor.shape[0]  # [k, 256, 7, 7]
-        box_feats = batch_box_feats[
-            previous_box_num : previous_box_num + batch_boxes[b].tensor.shape[0]
-        ].detach().numpy()
+        box_feats = (
+            batch_box_feats[
+                previous_box_num : previous_box_num + batch_boxes[b].tensor.shape[0]
+            ]
+            .cpu()
+            .detach()
+            .numpy()
+        )
 
         if args.get_tracking:
             assert len(box_feats) == len(final_boxes)
@@ -437,5 +443,3 @@ if __name__ == "__main__":
                             row[5],
                         )
                         fw.write(line + "\n")
-
-    cv2.destroyAllWindows()

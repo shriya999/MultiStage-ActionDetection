@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["--video_dir", "meva_outdoor_test", "--video_lst_file", "meva_outdoor_test.lst", "--frame_gap", "8" ,"--get_tracking", "--tracking_dir", "fpnr50_multib8thread_trackout_1280x720", "--max_size", "1920" ,"--short_edge_size", "1080", "--is_coco", "--im_batch_size", "8", "--prefetch" ,"10"]
+            "args": ["--video_dir", "meva_outdoor_test", "--video_lst_file", "meva_outdoor_test.lst", "--frame_gap", "8" ,"--get_tracking", "--tracking_dir", "fpnr50_multib8thread_trackout_1920x1080", "--max_size", "1920" ,"--short_edge_size", "1080", "--is_coco", "--im_batch_size", "8", "--prefetch" ,"10"]
         }
     ]
 }
