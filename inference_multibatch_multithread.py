@@ -231,17 +231,12 @@ def run_detect_and_track(
                     box_feats,
                     targetid2class,
                     target_tracking_obs,
-                    0.85,
+                    0.5,
                     0,
                     scale,
                     is_coco_model=args.is_coco_model,
                     coco_to_actev_mapping=coco_obj_to_actev_obj,
                 )
-                # Run non-maxima suppression.
-                boxes = np.array([d.tlwh for d in detections])
-                scores = np.array([d.confidence for d in detections])
-                indices = preprocessing.non_max_suppression(boxes, 0.85, scores)
-                detections = [detections[i] for i in indices]
 
                 # tracking
                 tracker_dict[tracking_obj].predict()
@@ -295,39 +290,6 @@ def run_detect_and_track(
                     tracking_results_dict[tracking_obj].append(
                         [cur_frame, track.track_id, bbox[0], bbox[1], bbox[2], bbox[3]]
                     )
-
-        if obj_out_dir is None:  # not saving the boxes
-            continue
-
-        # ---------------- get the json outputs for object detection
-
-        # scale back the box to original image size
-        final_boxes = final_boxes / scales[b]
-
-        # save as json
-        pred = []
-        for j, (box, prob, label) in enumerate(
-            zip(final_boxes, final_probs, final_labels)
-        ):
-            box[2] -= box[0]
-            box[3] -= box[1]  # produce x,y,w,h output
-
-            cat_id = int(label)
-            cat_name = targetid2class[cat_id]
-
-            res = {
-                "category_id": int(cat_id),
-                "cat_name": cat_name,  # [0-80]
-                "score": float(round(prob, 7)),
-                # "bbox": list(map(lambda x: float(round(x, 2)), box)),
-                "bbox": [float(round(x, 2)) for x in box],
-                "segmentation": None,
-            }
-            pred.append(res)
-        predfile = os.path.join(obj_out_dir, "%d.json" % (cur_frame))
-
-        with open(predfile, "w") as f:
-            json.dump(pred, f)
 
 
 if __name__ == "__main__":

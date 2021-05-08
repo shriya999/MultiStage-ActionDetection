@@ -27,7 +27,7 @@ class RCNNPredictor(FastRCNNOutputLayers):
         num_classes: int,
         test_score_thresh: float = 0.0,
         test_nms_thresh: float = 0.5,
-        test_topk_per_image: int = 100,
+        test_topk_per_image: int = 300,
         cls_agnostic_bbox_reg: bool = False,
         smooth_l1_beta: float = 0.0,
         box_reg_loss_type: str = "smooth_l1",
