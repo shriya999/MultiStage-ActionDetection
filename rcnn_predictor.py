@@ -5,6 +5,9 @@ import torch
 from fvcore.nn import giou_loss, smooth_l1_loss
 from torch import nn
 from torch.nn import functional as F
+from class_ids import coco_obj_class_to_id
+from class_ids import coco_obj_id_to_class
+from class_ids import coco_obj_to_actev_obj
 
 from detectron2.config import configurable
 from detectron2.layers import ShapeSpec, batched_nms, cat, cross_entropy, nonzero_tuple
@@ -13,8 +16,8 @@ from detectron2.structures import Boxes, Instances
 from detectron2.utils.events import get_event_storage
 from detectron2.modeling.roi_heads.fast_rcnn import FastRCNNOutputLayers
 
-class RCNNPredictor(FastRCNNOutputLayers):
 
+class RCNNPredictor(FastRCNNOutputLayers):
     @configurable
     def __init__(
         self,
@@ -43,7 +46,9 @@ class RCNNPredictor(FastRCNNOutputLayers):
             loss_weight=loss_weight,
         )
 
-    def inference(self, predictions: Tuple[torch.Tensor, torch.Tensor], proposals: List[Instances]):
+    def inference(
+        self, predictions: Tuple[torch.Tensor, torch.Tensor], proposals: List[Instances]
+    ):
         """
         Args:
             predictions: return values of :meth:`forward()`.
@@ -57,6 +62,7 @@ class RCNNPredictor(FastRCNNOutputLayers):
         boxes = self.predict_boxes(predictions, proposals)
         scores = self.predict_probs(predictions, proposals)
         image_shapes = [x.image_size for x in proposals]
+
         return self.box_pred_inference(
             boxes,
             scores,
@@ -102,9 +108,16 @@ class RCNNPredictor(FastRCNNOutputLayers):
         """
         result_per_image = [
             self.box_pred_inference_single_image(
-                boxes_per_image, scores_per_image, image_shape, score_thresh, nms_thresh, topk_per_image
+                boxes_per_image,
+                scores_per_image,
+                image_shape,
+                score_thresh,
+                nms_thresh,
+                topk_per_image,
             )
-            for scores_per_image, boxes_per_image, image_shape in zip(scores, boxes, image_shapes)
+            for scores_per_image, boxes_per_image, image_shape in zip(
+                scores, boxes, image_shapes
+            )
         ]
         return [x[0] for x in result_per_image], [x[1] for x in result_per_image]
 
@@ -128,7 +141,31 @@ class RCNNPredictor(FastRCNNOutputLayers):
         Returns:
             Same as `fast_rcnn_inference`, but for only one image.
         """
-        valid_mask = torch.isfinite(boxes).all(dim=1) & torch.isfinite(scores).all(dim=1)
+
+        partial_classes = [classname for classname in coco_obj_to_actev_obj]
+        classname2id = coco_obj_class_to_id
+        partial_classes = [classname for classname in coco_obj_to_actev_obj]
+        needed_object_classids = [classname2id[name] for name in partial_classes]
+        needed_object_classids_minus_1 = [o - 1 for o in needed_object_classids]
+
+        # (N, num_class), (N, num_class - 1, 4)
+        # -> (num_class, N), (num_class - 1, N, 4)
+        box_logits = boxes.reshape(boxes.shape[0], boxes.shape[1] // 4, 4)
+        label_logits_t = scores.permute(1, 0)
+        box_logits_t = box_logits.permute(1, 0, 2)
+        # [C + 1, N]  # 1 is the BG class
+        partial_label_logits_t = label_logits_t[[0] + needed_object_classids]
+        # [C, N, 4]
+        partial_box_logits_t = box_logits_t[needed_object_classids_minus_1]
+
+        partial_label_logits = partial_label_logits_t.permute(1, 0)
+        partial_box_logits = partial_box_logits_t.permute(1, 0, 2)
+        scores = partial_label_logits
+        boxes = partial_box_logits.reshape(partial_box_logits.shape[0], -1)
+
+        valid_mask = torch.isfinite(boxes).all(dim=1) & torch.isfinite(scores).all(
+            dim=1
+        )
         if not valid_mask.all():
             boxes = boxes[valid_mask]
             scores = scores[valid_mask]
@@ -162,5 +199,4 @@ class RCNNPredictor(FastRCNNOutputLayers):
         result.pred_boxes = Boxes(boxes)
         result.scores = scores
         result.pred_classes = filter_inds[:, 1]
-        result.valid_indices = keep
         return result, filter_inds[:, 0]

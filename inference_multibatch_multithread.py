@@ -58,8 +58,6 @@ from class_ids import coco_obj_id_to_class
 from class_ids import coco_obj_to_actev_obj
 from class_ids import coco_id_mapping
 
-targetClass2id = targetClass2id_new_nopo
-targetid2class = {targetClass2id[one]: one for one in targetClass2id}
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
@@ -128,22 +126,19 @@ def get_args():
     )
 
     args = parser.parse_args()
-    targetid2class = targetid2class
-    targetClass2id = targetClass2id
-
+    args.is_coco_model = True
+    args.partial_classes = [classname for classname in coco_obj_to_actev_obj]
     targetClass2id = coco_obj_class_to_id
     targetid2class = coco_obj_id_to_class
-
     args.num_class = 81
-    args.is_coco_model = True
-
-    args.classname2id = targetClass2id
-    args.classid2name = targetid2class
+    partial_classes = ["BG"] + args.partial_classes
+    targetClass2id = {classname: i for i, classname in enumerate(partial_classes)}
+    targetid2class = {targetClass2id[o]: o for o in targetClass2id}
 
     # ---------------more defautls
-    args.diva_class3 = True
     args.diva_class = False
     args.diva_class2 = False
+    args.diva_class3 = True
     args.use_small_object_head = False
     args.use_so_score_thres = False
     args.result_per_im = 100
@@ -185,22 +180,23 @@ def run_detect_and_track(
     input_dict = []
     for imgs in reordered_imgs:
         input_dict.append({"image": torch.from_numpy(imgs).float().to(device)})
-    outputs = model(input_dict)
 
-    batch_labels = [x["instances"].pred_classes for x in outputs]  # [B, num]
-    batch_boxes = [x["instances"].pred_boxes for x in outputs]  # [B, num, 4]
-    batch_probs = [x["instances"].scores for x in outputs]  # [B, num]
-    # valid_indices = [x["instances"].valid_indices for x in outputs]  # [B]
+    with torch.no_grad():
+        outputs = model(input_dict)
 
-    images = model.preprocess_image(input_dict)
-    features = model.backbone(images.tensor)
-    proposals, _ = model.proposal_generator(images, features)
-    instances, _ = model.roi_heads(images.tensor, features, proposals)
-    mask_features = [features[f] for f in model.roi_heads.in_features]
-    mask_features = model.roi_heads.mask_pooler(
-        mask_features, [x.pred_boxes for x in instances]
-    )
-    batch_box_feats = mask_features  # [M, 256, 7, 7]
+        batch_labels = [x["instances"].pred_classes for x in outputs]  # [B, num]
+        batch_boxes = [x["instances"].pred_boxes for x in outputs]  # [B, num, 4]
+        batch_probs = [x["instances"].scores for x in outputs]  # [B, num]
+
+        images = model.preprocess_image(input_dict)
+        features = model.backbone(images.tensor)
+        proposals, _ = model.proposal_generator(images, features)
+        instances, _ = model.roi_heads(images.tensor, features, proposals)
+        mask_features = [features[f] for f in model.roi_heads.in_features]
+        mask_features = model.roi_heads.mask_pooler(
+            mask_features, [x.pred_boxes for x in instances]
+        )
+        batch_box_feats = mask_features  # [M, 256, 7, 7]
 
     for b in range(valid_frame_num):
         cur_frame = frame_idxs[b]
@@ -356,8 +352,8 @@ if __name__ == "__main__":
     cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(
         "COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"
     )
-    cfg.MODEL.ROI_HEADS.NAME = "RCNN_ROIHeads"
     cfg.MODEL.DEVICE = "cpu"
+    cfg.MODEL.ROI_HEADS.NAME = "RCNN_ROIHeads"
     model = build_model(cfg)
     model.eval()
 
