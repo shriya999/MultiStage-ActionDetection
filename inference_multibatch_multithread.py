@@ -384,9 +384,9 @@ if __name__ == "__main__":
                 tracking_results = sorted(
                     tracking_results_dict[tracking_obj], key=lambda x: (x[0], x[1])
                 )
-                # print(len(tracking_results)
+                print(len(tracking_results))
                 tracking_data = np.asarray(tracking_results)
-                # print(tracking_data.shape
+                print(tracking_data.shape)
                 tracking_data = linear_inter_bbox(tracking_data, args.frame_gap)
                 tracking_data = filter_short_objs(tracking_data)
                 tracking_results = tracking_data.tolist()
