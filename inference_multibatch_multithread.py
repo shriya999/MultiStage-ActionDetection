@@ -231,7 +231,7 @@ def run_detect_and_track(
                     box_feats,
                     targetid2class,
                     target_tracking_obs,
-                    0.5,
+                    0.85,
                     0,
                     scale,
                     is_coco_model=args.is_coco_model,
@@ -276,7 +276,7 @@ def run_detect_and_track(
                                         bbox[3],
                                     ]
                                 )
-                        # continue
+                        continue
                     bbox = track.to_tlwh()
                     if track.track_id in tmp_tracking_results_dict[tracking_obj]:
                         pred_list = tmp_tracking_results_dict[tracking_obj][
