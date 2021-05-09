@@ -239,8 +239,12 @@ def run_detect_and_track(
                 )
 
                 # tracking
-                tracker_dict[tracking_obj].predict()
-                tracker_dict[tracking_obj].update(detections)
+                try:
+                    tracker_dict[tracking_obj].predict()
+                    tracker_dict[tracking_obj].update(detections)
+                except Exception as e:
+                    print("tracking error\n")
+                    continue
 
                 # Store results
                 for track in tracker_dict[tracking_obj].tracks:
@@ -314,7 +318,6 @@ if __name__ == "__main__":
     cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(
         "COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"
     )
-    cfg.MODEL.DEVICE = "cpu"
     cfg.MODEL.ROI_HEADS.NAME = "RCNN_ROIHeads"
     model = build_model(cfg)
     model.eval()

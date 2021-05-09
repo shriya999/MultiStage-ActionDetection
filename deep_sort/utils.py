@@ -30,8 +30,8 @@ def create_obj_infos(
                 cat_name = coco_to_actev_mapping[cat_name]
 
         confidence_socre = float(round(prob, 7))
-        # if cat_name not in tracking_objs or confidence_socre < min_confidence:
-        # continue
+        if cat_name not in tracking_objs or confidence_socre < min_confidence:
+            continue
         box[2] -= box[0]
         box[3] -= box[1]
         avg_feat = box_feats[j]
