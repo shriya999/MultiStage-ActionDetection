@@ -276,7 +276,7 @@ def run_detect_and_track(
                                         bbox[3],
                                     ]
                                 )
-                        continue
+                        # continue
                     bbox = track.to_tlwh()
                     if track.track_id in tmp_tracking_results_dict[tracking_obj]:
                         pred_list = tmp_tracking_results_dict[tracking_obj][
@@ -384,7 +384,7 @@ if __name__ == "__main__":
                 tracking_results = sorted(
                     tracking_results_dict[tracking_obj], key=lambda x: (x[0], x[1])
                 )
-                print(len(tracking_results))
+                print("\n", len(tracking_results))
                 tracking_data = np.asarray(tracking_results)
                 print(tracking_data.shape)
                 tracking_data = linear_inter_bbox(tracking_data, args.frame_gap)
