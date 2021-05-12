@@ -16,11 +16,11 @@ For the object detection module, we use the MaskRCNN with a Resnet50 + FPN backb
 
 Requirements:
 
-Python>=3.7
-cuda10.1
-PyTorch=1.5.1
-Torchvision=0.6.1
-Pillow=7.0.0
+- Python>=3.7
+- cuda10.1
+- PyTorch=1.5.1
+- Torchvision=0.6.1
+- Pillow=7.0.0
 
 Other dependencies: numpy; scipy; sklearn; cv2; matplotlib; pycocotools
 
