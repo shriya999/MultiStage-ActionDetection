@@ -35,12 +35,10 @@ def create_obj_infos(
         box[2] -= box[0]
         box[3] -= box[1]
         avg_feat = box_feats[j]
-        if len(avg_feat.shape) > 2:
-            avg_feat = np.mean(np.mean(box_feats[j], axis=1), axis=1)
+        if len(avg_feat.shape) > 2:  # [C, H, W]
+            avg_feat = np.mean(box_feats[j], axis=(1, 2))
 
-        norm_feat = avg_feat / np.linalg.norm(avg_feat)
-
-        list_feat = norm_feat.tolist()
+        list_feat = avg_feat.tolist()
         bbox_data = [
             cur_frame,
             box[0],
@@ -93,8 +91,8 @@ def linear_inter_bbox(tracking_data, frame_gap):
             next_frame = selected_data[insert_index, 0]
             if next_frame - prev_frame > 10 * frame_gap:
                 continue
-            prev_data = selected_data[insert_index - 1, 2:6]
-            next_data = selected_data[insert_index, 2:6]
+            prev_data = selected_data[insert_index - 1, 2:]
+            next_data = selected_data[insert_index, 2:]
 
             ratio = 1.0 * (missing_frame - prev_frame) / (next_frame - prev_frame)
             cur_data = prev_data + (next_data - prev_data) * ratio

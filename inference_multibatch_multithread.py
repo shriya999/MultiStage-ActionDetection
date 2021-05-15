@@ -198,6 +198,9 @@ def run_detect_and_track(
         )
         batch_box_feats = mask_features  # [M, 256, 7, 7]
 
+    # if len(batch_box_feats.shape) > 2:
+    #     batch_box_feats = np.amax(batch_box_feats, axis=(2, 3))
+
     for b in range(valid_frame_num):
         cur_frame = frame_idxs[b]
         final_boxes = batch_boxes[b].tensor.cpu().detach().numpy()  # [k, 4]
@@ -231,12 +234,24 @@ def run_detect_and_track(
                     box_feats,
                     targetid2class,
                     target_tracking_obs,
-                    0.85,
+                    0.8,
                     0,
                     scale,
                     is_coco_model=args.is_coco_model,
                     coco_to_actev_mapping=coco_obj_to_actev_obj,
                 )
+
+                for det in detections:
+                    bbox = det.tlwh()
+                    tracking_results_dict[tracking_obj].append(
+                        [cur_frame, -1, bbox[0], bbox[1], bbox[2], bbox[3]]
+                    )
+
+                # Run non-maxima suppression.
+                boxes = np.array([d.tlwh for d in detections])
+                scores = np.array([d.confidence for d in detections])
+                indices = preprocessing.non_max_suppression(boxes, 0.5, scores)
+                detections = [detections[i] for i in indices]
 
                 # tracking
                 try:
@@ -318,7 +333,10 @@ if __name__ == "__main__":
     cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(
         "COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"
     )
+    cfg.MODEL.DEVICE = "cpu"
     cfg.MODEL.ROI_HEADS.NAME = "RCNN_ROIHeads"
+    cfg.MODEL.PROPOSAL_GENERATOR.POSITIVE_FRACTION = (0.8,)
+    cfg.MODEL.PROPOSAL_GENERATOR.NMS_THRESH = 0.5
     model = build_model(cfg)
     model.eval()
 
@@ -335,9 +353,9 @@ if __name__ == "__main__":
             tmp_tracking_results_dict = {}
             for tracking_obj in tracking_objs:
                 metric = metric = nn_matching.NearestNeighborDistanceMetric(
-                    "cosine", 0.5, 5
+                    "cosine", 0.7, 5
                 )
-                tracker_dict[tracking_obj] = Tracker(metric, max_iou_distance=0.5)
+                tracker_dict[tracking_obj] = Tracker(metric, max_iou_distance=0.9)
                 tracking_results_dict[tracking_obj] = []
                 tmp_tracking_results_dict[tracking_obj] = {}
 
@@ -376,6 +394,7 @@ if __name__ == "__main__":
             )
 
         if args.get_tracking:
+            track_num = []
             for tracking_obj in tracking_objs:
                 output_dir = os.path.join(args.tracking_dir, videoname, tracking_obj)
                 if not os.path.exists(output_dir):
@@ -387,12 +406,13 @@ if __name__ == "__main__":
                 tracking_results = sorted(
                     tracking_results_dict[tracking_obj], key=lambda x: (x[0], x[1])
                 )
-                print("\n", len(tracking_results))
                 tracking_data = np.asarray(tracking_results)
-                print(tracking_data.shape)
                 tracking_data = linear_inter_bbox(tracking_data, args.frame_gap)
                 tracking_data = filter_short_objs(tracking_data)
                 tracking_results = tracking_data.tolist()
+                track_num.append(
+                    (tracking_obj, len({c[1]: 1 for c in tracking_results}))
+                )
                 with open(output_file, "w") as fw:
                     for row in tracking_results:
                         line = "%d,%d,%.2f,%.2f,%.2f,%.2f,1,-1,-1,-1" % (
@@ -404,3 +424,4 @@ if __name__ == "__main__":
                             row[5],
                         )
                         fw.write(line + "\n")
+                print("Track num %s" % (track_num))

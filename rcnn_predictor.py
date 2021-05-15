@@ -179,7 +179,7 @@ class RCNNPredictor(FastRCNNOutputLayers):
 
         # 1. Filter results based on detection scores. It can make NMS more efficient
         #    by filtering out low-confidence detections.
-        filter_mask = scores > 0  # R x K
+        filter_mask = scores > 0.0  # R x K
         # R' x 2. First column contains indices of the R predictions;
         # Second column contains indices of classes.
         filter_inds = filter_mask.nonzero()

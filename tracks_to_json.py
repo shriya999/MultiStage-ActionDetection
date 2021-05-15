@@ -17,53 +17,78 @@ parser.add_argument("--bupt_exp", action="store_true")
 
 
 if __name__ == "__main__":
-	args = parser.parse_args()
+    args = parser.parse_args()
 
-	# leave the .mp4
-	videonames = [os.path.basename(line.strip()) for line in open(args.videonamelst,"r").readlines()]
+    # leave the .mp4
+    videonames = [
+        os.path.basename(line.strip())
+        for line in open(args.videonamelst, "r").readlines()
+    ]
 
-	if not os.path.exists(args.despath):
-		os.makedirs(args.despath)
+    if not os.path.exists(args.despath):
+        os.makedirs(args.despath)
 
-	if args.bupt_exp:
-		targetClass2id = targetAct2id_bupt
+    if args.bupt_exp:
+        targetClass2id = targetAct2id_bupt
 
-	for videoname in tqdm(videonames, ascii=True):
-		#detfile = os.path.join(args.filepath, "%s.txt"%videoname)
-		detfiles = glob(os.path.join(args.filepath, videoname, "*", "%s.txt" % (os.path.splitext(videoname)[0])))
+    for videoname in tqdm(videonames, ascii=True):
+        # detfile = os.path.join(args.filepath, "%s.txt"%videoname)
+        detfiles = glob(
+            os.path.join(
+                args.filepath,
+                videoname,
+                "*",
+                "%s.txt" % (os.path.splitext(videoname)[0]),
+            )
+        )
 
-		data = {} # frame -> boxes
-		for detfile in detfiles:
-			#cat_name = detfile.split("/")[-2] # this does not work under windows
-			# 1. norm the path, in windows "/" will be converted to "\"
-			detfile = os.path.normpath(detfile)
-			# 2. split the path using os specific separator
-			cat_name = detfile.split(os.sep)[-2]
-			for line in open(detfile, "r").readlines():
-				# note the frameIdx start from 1
-				frameIdx, track_id, left, top, width, height, conf, _, _, _ = line.strip().split(",")
-				frameIdx = int(frameIdx) - 1  # note here I made a mistake, gt is 1-indexed, but out obj_tracking output is 0-indexed
+        data = {}  # frame -> boxes
+        for detfile in detfiles:
+            # cat_name = detfile.split("/")[-2] # this does not work under windows
+            # 1. norm the path, in windows "/" will be converted to "\"
+            detfile = os.path.normpath(detfile)
+            # 2. split the path using os specific separator
+            cat_name = detfile.split(os.sep)[-2]
+            for line in open(detfile, "r").readlines():
+                # note the frameIdx start from 1
+                (
+                    frameIdx,
+                    track_id,
+                    left,
+                    top,
+                    width,
+                    height,
+                    conf,
+                    _,
+                    _,
+                    _,
+                ) = line.strip().split(",")
+                frameIdx = int(frameIdx)
 
-				track_id = int(track_id)
+                track_id = int(track_id)
 
-				box = [float(left), float(top), float(width), float(height)]
+                box = [float(left), float(top), float(width), float(height)]
 
-				#if not data.has_key(frameIdx):
-				if not frameIdx in data:
-					data[frameIdx] = []
-				data[frameIdx].append({
-					"category_id": targetClass2id[cat_name],
-					"cat_name": cat_name,
-					"score": float(round(float(conf), 7)),
-					"bbox": box,
-					"segmentation": None,
-					"trackId": track_id
-				})
+                # if not data.has_key(frameIdx):
+                if not frameIdx in data:
+                    data[frameIdx] = []
+                data[frameIdx].append(
+                    {
+                        "category_id": targetClass2id[cat_name],
+                        "cat_name": cat_name,
+                        "score": float(round(float(conf), 7)),
+                        "bbox": box,
+                        "segmentation": None,
+                        "trackId": track_id,
+                    }
+                )
 
-		for frameIndex in data:
+        for frameIndex in data:
 
-			annofile = os.path.join(args.despath, "%s_F_%08d.json"%(os.path.splitext(videoname)[0], frameIndex))
+            annofile = os.path.join(
+                args.despath,
+                "%s_F_%08d.json" % (os.path.splitext(videoname)[0], frameIndex),
+            )
 
-			with open(annofile, "w") as f:
-				json.dump(data[frameIndex], f)
-
+            with open(annofile, "w") as f:
+                json.dump(data[frameIndex], f)

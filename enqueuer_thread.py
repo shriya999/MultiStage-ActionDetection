@@ -267,7 +267,7 @@ class VideoEnqueuer(object):
                 frame_count += 1
                 continue
 
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            # frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
             im = frame.astype("float32")
 
             resized_image = cv2.resize(im, (cfg.short_edge_size, cfg.max_size))
