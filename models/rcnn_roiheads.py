@@ -15,11 +15,11 @@ from detectron2.modeling.roi_heads.roi_heads import StandardROIHeads
 from detectron2.modeling.roi_heads.roi_heads import ROI_HEADS_REGISTRY
 from detectron2.modeling.poolers import ROIPooler
 from detectron2.modeling.roi_heads.box_head import build_box_head
-from rcnn_predictor import RCNNPredictor
+from models.rcnn_predictor import RCNNPredictor
+
 
 @ROI_HEADS_REGISTRY.register()
 class RCNN_ROIHeads(StandardROIHeads):
-
     @configurable
     def __init__(
         self,
@@ -35,7 +35,7 @@ class RCNN_ROIHeads(StandardROIHeads):
         keypoint_pooler: Optional[ROIPooler] = None,
         keypoint_head: Optional[nn.Module] = None,
         train_on_pred_boxes: bool = False,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(
             box_in_features=box_in_features,
@@ -49,7 +49,7 @@ class RCNN_ROIHeads(StandardROIHeads):
             keypoint_pooler=keypoint_pooler,
             keypoint_head=keypoint_head,
             train_on_pred_boxes=train_on_pred_boxes,
-            **kwargs
+            **kwargs,
         )
 
     @classmethod
@@ -79,7 +79,10 @@ class RCNN_ROIHeads(StandardROIHeads):
         # They are used together so the "box predictor" layers should be part of the "box head".
         # New subclasses of ROIHeads do not need "box predictor"s.
         box_head = build_box_head(
-            cfg, ShapeSpec(channels=in_channels, height=pooler_resolution, width=pooler_resolution)
+            cfg,
+            ShapeSpec(
+                channels=in_channels, height=pooler_resolution, width=pooler_resolution
+            ),
         )
         box_predictor = RCNNPredictor(cfg, box_head.output_shape)
         return {

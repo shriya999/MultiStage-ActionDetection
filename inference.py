@@ -39,7 +39,7 @@ from detectron2.config import get_cfg
 from detectron2.utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.modeling import build_model
-from rcnn_roiheads import RCNN_ROIHeads
+from models.rcnn_roiheads import RCNN_ROIHeads
 
 # tracking stuff
 from deep_sort import nn_matching
@@ -242,7 +242,7 @@ def run_detect_and_track(
                 )
 
                 for det in detections:
-                    bbox = det.tlwh()
+                    bbox = det.tlwh
                     tracking_results_dict[tracking_obj].append(
                         [cur_frame, -1, bbox[0], bbox[1], bbox[2], bbox[3]]
                     )
